@@ -13,16 +13,34 @@ const run = async () => {
     await mongoDb.connect();
 
     app.post('/links', async (req, res) => {
-        const db = mongoDb.getDb();
-        const data = {
-            "originalUrl": req.body.URL,
-            "shortUrl": nanoid(6)
-        };
+        try {
+            const db = mongoDb.getDb();
+            const data = {
+                "originalUrl": req.body.URL,
+                "shortUrl": nanoid(6)
+            };
 
-        const result = await db.collection('links').insertOne(data);
-        const link = await db.collection('links').findOne({_id: ObjectId(result.insertedId)});
+            const result = await db.collection('links').insertOne(data);
+            const link = await db.collection('links').findOne({_id: ObjectId(result.insertedId)});
 
-        res.send(link);
+            res.send(link);
+        } catch {
+            res.sendStatus(500);
+        }
+    });
+
+    app.get('/:shortUrl', async (req, res) => {
+       try {
+           const db = mongoDb.getDb();
+           const result = await db.collection('links').findOne({shortUrl: req.params.shortUrl});
+           if (result) {
+               res.status(301).redirect(result.originalUrl);
+           } else {
+               res.sendStatus(404);
+           }
+       } catch {
+            res.sendStatus(500);
+       }
     });
 
 
@@ -33,4 +51,4 @@ const run = async () => {
 
 };
 
-run();
+run().catch(e => console.error(e));
